@@ -280,8 +280,10 @@ ECHO    = echo
 SYS_LIBS      = $(foreach LPATH, $(ARDUINO_LIB_PATH), $(patsubst %,$(LPATH)/%,$(ARDUINO_LIBS)) )
 SYS_INCLUDES  = $(patsubst %,-I%,$(SYS_LIBS))
 SYS_OBJS      = $(wildcard $(patsubst %,%/*.o,$(SYS_LIBS)))
-LIB_SRC       = $(wildcard $(patsubst %,%/*.cpp,$(SYS_LIBS)))
-LIB_OBJS      = $(filter %.o, $(foreach LPATH, $(ARDUINO_LIB_PATH), $(patsubst $(LPATH)/%.cpp,$(OBJDIR)/libs/%.o,$(LIB_SRC)) ) )
+LIB_SRC       = $(wildcard $(patsubst %,%/*.cpp,$(SYS_LIBS))) $(wildcard $(patsubst %,%/*.c,$(SYS_LIBS)))
+LIB_OBJS_CPP  = $(filter %.o, $(foreach LPATH, $(ARDUINO_LIB_PATH), $(patsubst $(LPATH)/%.cpp,$(OBJDIR)/libs/%.o,$(LIB_SRC)) ) )
+LIB_OBJS_C    = $(filter %.o, $(foreach LPATH, $(ARDUINO_LIB_PATH), $(patsubst $(LPATH)/%.c,$(OBJDIR)/libs/%.o,$(LIB_SRC)) ) )
+LIB_OBJS      = $(LIB_OBJS_CPP) $(LIB_OBJS_C)
 
 CPPFLAGS      = -mmcu=$(MCU) -DF_CPU=$(F_CPU) \
 			-I. -I$(ARDUINO_CORE_PATH) \
@@ -309,7 +311,7 @@ ARD_PORT      = $(firstword $(wildcard $(ARDUINO_PORT)))
 # library sources
 $(OBJDIR)/libs/%.o:
 	mkdir -p $(dir $@)
-	for HAY in $(LIB_SRC); do [[ $$HAY =~ $* ]] && IN=$$HAY; done || echo "" && \
+	for HAY in $(LIB_SRC); do echo "\n $* \n"; [[ $$HAY =~ $* ]] && IN=$$HAY; echo " $$IN "; done || echo "\n\n $* $$IN \n\n" && \
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $$IN -o $@
 
 # normal local sources
