@@ -41,6 +41,11 @@
 #                          - added -lc to linker opts,
 #                            on Fabien Le Lez's advice
 #
+#         0.7  06.x.2011  Tobias Bielohlawek (rngtng)
+#                          - updated for Arduino 1.0 support
+#                          - customizable ARDUINO_LIB_PATH
+#                          - multiple library path support
+#
 ########################################################################
 #
 # STANDARD ARDUINO WORKFLOW
@@ -64,7 +69,7 @@
 #
 #    ARDUINO_DIR  - Where the Arduino software has been unpacked
 #    TARGET       - The basename used for the final files. Canonically
-#                   this would match the .pde file, but it's not needed
+#                   this would match the .ino file, but it's not needed
 #                   here: you could always set it to xx if you wanted!
 #    ARDUINO_LIBS - A list of any libraries used by the sketch (we assume
 #                   these are in $(ARDUINO_DIR)/hardware/libraries
@@ -84,7 +89,7 @@
 #
 # All of the object files are created in the build-cli subdirectory
 # All sources should be in the current directory and can include:
-#  - at most one .pde file which will be treated as C++ after the standard
+#  - at most one .ino file which will be treated as C++ after the standard
 #    Arduino header and footer have been affixed.
 #  - any number of .c, .cpp, .s and .h files
 #
@@ -159,6 +164,8 @@ endif
 
 ARDUINO_CORE_PATH = $(ARDUINO_DIR)/hardware/arduino/cores/arduino
 
+ARDUINO_PIN_PATH = $(ARDUINO_DIR)/hardware/arduino/variants/standard
+
 endif
 
 ########################################################################
@@ -227,10 +234,10 @@ OBJDIR  	  = build-cli
 LOCAL_C_SRCS    = $(wildcard *.c)
 LOCAL_CPP_SRCS  = $(wildcard *.cpp)
 LOCAL_CC_SRCS   = $(wildcard *.cc)
-LOCAL_PDE_SRCS  = $(wildcard *.pde)
+LOCAL_INO_SRCS  = $(wildcard *.ino)
 LOCAL_AS_SRCS   = $(wildcard *.S)
 LOCAL_OBJ_FILES = $(LOCAL_C_SRCS:.c=.o) $(LOCAL_CPP_SRCS:.cpp=.o) \
-		$(LOCAL_CC_SRCS:.cc=.o) $(LOCAL_PDE_SRCS:.pde=.o) \
+		$(LOCAL_CC_SRCS:.cc=.o) $(LOCAL_INO_SRCS:.ino=.o) \
 		$(LOCAL_AS_SRCS:.S=.o)
 LOCAL_OBJS      = $(patsubst %,$(OBJDIR)/%,$(LOCAL_OBJ_FILES))
 
@@ -284,7 +291,7 @@ LIB_SRC       = $(wildcard $(patsubst %,%/*.cpp,$(SYS_LIBS)))
 LIB_OBJS      = $(filter %.o, $(foreach LPATH, $(ARDUINO_LIB_PATH), $(patsubst $(LPATH)/%.cpp,$(OBJDIR)/libs/%.o,$(LIB_SRC)) ) )
 
 CPPFLAGS      = -mmcu=$(MCU) -DF_CPU=$(F_CPU) \
-			-I. -I$(ARDUINO_CORE_PATH) \
+			-I. -I$(ARDUINO_PIN_PATH) -I$(ARDUINO_CORE_PATH) \
 			$(SYS_INCLUDES) -g -Os -w -Wall \
 			-ffunction-sections -fdata-sections
 CFLAGS        = -std=gnu99
@@ -293,7 +300,7 @@ ASFLAGS       = -mmcu=$(MCU) -I. -x assembler-with-cpp
 LDFLAGS       = -mmcu=$(MCU) -lm -Wl,--gc-sections -Os
 
 # Rules for making a CPP file from the main sketch (.cpe)
-PDEHEADER     = \\\#include \"WProgram.h\"
+INOHEADER     = \\\#include \"Arduino.h\"
 
 # Expand and pick the first port
 ARD_PORT      = $(firstword $(wildcard $(ARDUINO_PORT)))
@@ -345,9 +352,9 @@ $(OBJDIR)/%.d: %.S
 $(OBJDIR)/%.d: %.s
 	$(CC) -MM $(CPPFLAGS) $(ASFLAGS) $< -MF $@ -MT $(@:.d=.o)
 
-# the pde -> cpp -> o file
-$(OBJDIR)/%.cpp: %.pde
-	$(ECHO) $(PDEHEADER) > $@
+# the ino -> cpp -> o file
+$(OBJDIR)/%.cpp: %.ino
+	$(ECHO) $(INOHEADER) > $@
 	$(CAT)  $< >> $@
 
 $(OBJDIR)/%.o: $(OBJDIR)/%.cpp
