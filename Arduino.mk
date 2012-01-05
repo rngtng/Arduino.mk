@@ -77,6 +77,16 @@
 #                   when uploading
 #    BOARD_TAG    - The ard-parse-boards tag for the board e.g. uno or mega
 #                   'make show_boards' shows a list
+#    GIT_ENABLE   - This option will enable the generaiton of a "git_version.h"
+#                   header file that will define lastest revision of
+#                   files used to generate the binary.
+#
+#                   For example:
+# #define GIT_VERSION_TARGET "b12bdd45e75ba275e2b10abf84411305989bb399"
+# #define GIT_DATE_TARGET "Wed Jan 4 18:05:08 2012 +0100"
+# 					Thoses formats can be overridden with the following flags:
+# 	 GIT_VERSION_FMT
+# 	 GIT_DATE_FMT
 #
 # You might also want to specify these, but normally they'll be read from the
 # boards.txt file i.e. implied by BOARD_TAG
@@ -166,6 +176,21 @@ ARDUINO_CORE_PATH = $(ARDUINO_DIR)/hardware/arduino/cores/arduino
 
 ARDUINO_PIN_PATH = $(ARDUINO_DIR)/hardware/arduino/variants/standard
 
+endif
+
+########################################################################
+# git_version.h
+#
+ifndef GIT_VERSION_FMT
+GIT_VERSION_FMT = %H
+endif
+
+ifndef GIT_DATE_FMT
+GIT_DATE_FMT = %ai
+endif
+
+ifndef GIT_HEADER
+GIT_HEADER = git_version.h
 endif
 
 ########################################################################
@@ -289,6 +314,11 @@ SYS_INCLUDES  = $(patsubst %,-I%,$(SYS_LIBS))
 SYS_OBJS      = $(wildcard $(patsubst %,%/*.o,$(SYS_LIBS)))
 LIB_SRC       = $(wildcard $(patsubst %,%/*.cpp,$(SYS_LIBS)))
 LIB_OBJS      = $(filter %.o, $(foreach LPATH, $(ARDUINO_LIB_PATH), $(patsubst $(LPATH)/%.cpp,$(OBJDIR)/libs/%.o,$(LIB_SRC)) ) )
+
+# Git git_version.h final filepath
+ifdef GIT_ENABLE
+GIT_FHEADER   = $(OBJDIR)/$(GIT_HEADER)
+endif
 
 CPPFLAGS      = -mmcu=$(MCU) -DF_CPU=$(F_CPU) \
 			-I. -I$(ARDUINO_PIN_PATH) -I$(ARDUINO_CORE_PATH) \
@@ -416,7 +446,7 @@ AVRDUDE_ISP_OPTS = -P $(ISP_PORT) $(ISP_PROG)
 # Explicit targets start here
 #
 
-all: 		$(OBJDIR) $(TARGET_HEX)
+all: 		$(OBJDIR) $(TARGET_HEX) $(GIT_FHEADER)
 
 $(OBJDIR):
 		mkdir $(OBJDIR)
@@ -455,8 +485,32 @@ ispload:	$(TARGET_HEX)
 		$(AVRDUDE) $(AVRDUDE_COM_OPTS) $(AVRDUDE_ISP_OPTS) \
 			-U lock:w:$(ISP_LOCK_FUSE_POST):m
 
+$(GIT_FHEADER):
+		> $(GIT_FHEADER)
+		for repo in . $(foreach LPATH, $(ARDUINO_LIB_PATH), $(patsubst %,$(LPATH)/%,$(ARDUINO_LIBS)) ) ; do \
+			if [ "$$repo" = "." ]; then \
+				reponame=`echo $(TARGET) | tr '[:lower:]' '[:upper:]'` ; \
+			else \
+				reponame=`basename $${repo} | tr '[:lower:]' '[:upper:]'`; \
+			fi ; \
+			if [ -d $${repo} ]; then \
+				git_output=`git log -1 $${repo} 2>/dev/null` ; \
+				if [ $$? = 0 ]; then \
+					pushd $${repo} >/dev/null; \
+					git_version=`git log --pretty=format:'$(GIT_VERSION_FMT)' -1` ; \
+					git_date=`git log --pretty=format:'$(GIT_DATE_FMT)' -1` ; \
+					popd >/dev/null; \
+					echo "#define GIT_VERSION_$${reponame} \"$${git_version}\"" >> $(GIT_FHEADER); \
+					echo "#define GIT_DATE_$${reponame} \"$${git_date}\"" >> $(GIT_FHEADER); \
+					echo "" >> $(GIT_FHEADER) ; \
+				else \
+					echo "Repository $${repo} is not managed thru git." ; \
+				fi ; \
+			fi ; \
+		done ;\
+
 clean:
-		$(REMOVE) $(OBJS) $(TARGETS) $(DEP_FILE) $(DEPS)
+		$(REMOVE) $(OBJS) $(TARGETS) $(DEP_FILE) $(DEPS) $(GIT_FHEADER)
 
 depends:	$(DEPS)
 		cat $(DEPS) > $(DEP_FILE)
