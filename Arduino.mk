@@ -62,6 +62,8 @@
 #
 #       BOARD_TAG    = uno
 #       ARDUINO_PORT = /dev/cu.usb*
+#       # Used for the make console command
+#       ARDUINO_BAUDRATE = 115200
 #
 #       include /usr/local/share/Arduino.mk
 #
@@ -112,6 +114,7 @@
 #   make reset       - reset the Arduino by tickling DTR on the serial port
 #   make raw_upload  - upload without first resetting
 #   make show_boards - list all the boards defined in boards.txt
+#   make console     - launch cu on your device
 #
 ########################################################################
 #
@@ -247,7 +250,10 @@ ifndef ISP_EXT_FUSE
 ISP_EXT_FUSE       = $(shell $(PARSE_BOARD) $(BOARD_TAG) bootloader.extended_fuses)
 endif
 
-
+# console baudrate
+ifndef ARDUINO_BAUDRATE
+ARDUINO_BAUDRATE = 115200
+endif
 
 
 # Everything gets built in here
@@ -514,6 +520,9 @@ clean:
 
 depends:	$(DEPS)
 		cat $(DEPS) > $(DEP_FILE)
+
+console:
+		socat - $(ARDUINO_PORT),echo=0,crnl,crtscts=0,cs8,igncr=1,b$(ARDUINO_BAUDRATE),echoctl=0
 
 show_boards:
 		$(PARSE_BOARD) --boards
