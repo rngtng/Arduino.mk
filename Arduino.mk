@@ -394,7 +394,7 @@ $(OBJDIR)/%.d: %.s
 	$(CC) -MM $(CPPFLAGS) $(ASFLAGS) $< -MF $@ -MT $(@:.d=.o)
 
 # the ino -> cpp -> o file
-$(OBJDIR)/%.cpp: %.ino
+$(OBJDIR)/%.cpp: %.ino $(GIT_FHEADER)
 	$(ECHO) $(INOHEADER) > $@
 	$(CAT)  $< >> $@
 
@@ -452,7 +452,7 @@ AVRDUDE_ISP_OPTS = -P $(ISP_PORT) $(ISP_PROG)
 # Explicit targets start here
 #
 
-all: 		$(OBJDIR) $(TARGET_HEX) $(GIT_FHEADER)
+all:		$(OBJDIR) $(TARGET_HEX) $(GIT_FHEADER)
 
 $(OBJDIR):
 		mkdir $(OBJDIR)
