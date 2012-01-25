@@ -452,7 +452,7 @@ AVRDUDE_ISP_OPTS = -P $(ISP_PORT) $(ISP_PROG)
 # Explicit targets start here
 #
 
-all:		$(OBJDIR) $(TARGET_HEX) $(GIT_FHEADER)
+all:		$(OBJDIR) $(TARGET_HEX)
 
 $(OBJDIR):
 		mkdir $(OBJDIR)
