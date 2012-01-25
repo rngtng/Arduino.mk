@@ -500,7 +500,7 @@ $(GIT_FHEADER):
 				reponame=`basename $${repo} | tr '[:lower:]' '[:upper:]'`; \
 			fi ; \
 			if [ -d $${repo} ]; then \
-				git_output=`git log -1 $${repo} 2>/dev/null` ; \
+				git_output=`git log -1 2>/dev/null` ; \
 				if [ $$? = 0 ]; then \
 					pushd $${repo} >/dev/null; \
 					git_version=`git log --pretty=format:'$(GIT_VERSION_FMT)' -1` ; \
