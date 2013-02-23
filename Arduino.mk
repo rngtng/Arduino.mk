@@ -178,8 +178,6 @@ endif
 
 ARDUINO_CORE_PATH = $(ARDUINO_DIR)/hardware/arduino/cores/arduino
 
-ARDUINO_PIN_PATH = $(ARDUINO_DIR)/hardware/arduino/variants/standard
-
 endif
 
 ########################################################################
@@ -219,6 +217,22 @@ endif
 
 ifndef F_CPU
 F_CPU = $(shell $(PARSE_BOARD) $(BOARD_TAG) build.f_cpu)
+endif
+
+ifndef VID
+VID = $(shell $(PARSE_BOARD) $(BOARD_TAG) build.vid)
+endif
+
+ifndef PID
+PID = $(shell $(PARSE_BOARD) $(BOARD_TAG) build.pid)
+endif
+
+ifndef VARIANT
+VARIANT = $(shell $(PARSE_BOARD) $(BOARD_TAG) build.variant)
+endif
+
+ifndef ARDUINO_PIN_PATH
+ARDUINO_PIN_PATH = $(ARDUINO_DIR)/hardware/arduino/variants/$(VARIANT)
 endif
 
 # normal programming info
@@ -330,6 +344,7 @@ endif
 CPPFLAGS      = -mmcu=$(MCU) -DF_CPU=$(F_CPU) \
 			-I. -I$(ARDUINO_PIN_PATH) -I$(ARDUINO_CORE_PATH) \
 			$(SYS_INCLUDES) -g -Os -w -Wall \
+            -DUSB_VID=$(VID) -DUSB_PID=$(PID) \
 			-ffunction-sections -fdata-sections
 ifndef ARDUINO
 ARDUINO=100
